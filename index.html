@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GPA Calculator — Somerville House</title>
+  <style>
+    /* ── Reset & base ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:       #6c3483;
+      --brand-light: #f4eef8;
+      --brand-mid:   #9b59b6;
+      --accent:      #8e44ad;
+      --text:        #1a1a2e;
+      --muted:       #6b7280;
+      --border:      #e2d9f3;
+      --surface:     #ffffff;
+      --bg:          #f8f5fb;
+      --warn:        #d97706;
+      --danger:      #dc2626;
+      --radius:      10px;
+      --shadow:      0 2px 12px rgba(108,52,131,.10);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ───────────────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, var(--brand) 0%, var(--brand-mid) 100%);
+      color: #fff;
+      padding: .85rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 2px 16px rgba(108,52,131,.25);
+      flex-shrink: 0;
+    }
+    header svg { flex-shrink: 0; }
+    header h1  { font-size: 1.2rem; font-weight: 700; letter-spacing: -.02em; }
+    header p   { font-size: .76rem; opacity: .82; margin-top: .08rem; }
+
+    /* ── Container ────────────────────────────────────────────── */
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      padding: .7rem 1.25rem;
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Card ─────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    /* ── Toolbar ──────────────────────────────────────────────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: .55rem;
+      padding: .6rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--brand-light);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    /* Period type toggle */
+    .period-toggle {
+      display: flex;
+      border: 1.5px solid var(--brand-mid);
+      border-radius: 6px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .period-toggle button {
+      padding: .3rem .85rem;
+      font-size: .8rem;
+      font-weight: 600;
+      border: none;
+      background: transparent;
+      color: var(--brand);
+      cursor: pointer;
+      transition: background .14s, color .14s;
+      line-height: 1.4;
+    }
+    .period-toggle button.active { background: var(--brand); color: #fff; }
+    .period-toggle button:not(.active):hover { background: rgba(108,52,131,.08); }
+    .period-toggle-sep { width: 1px; background: var(--brand-mid); }
+
+    .toolbar-sep { width: 1px; height: 1.3rem; background: var(--border); flex-shrink: 0; }
+    .toolbar-spacer { flex: 1; min-width: .25rem; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .28rem;
+      padding: .32rem .8rem;
+      border-radius: 6px;
+      font-size: .78rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      transition: all .14s;
+      white-space: nowrap;
+      line-height: 1.4;
+    }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-outline  { background: transparent; border-color: var(--brand-mid); color: var(--brand); }
+    .btn-outline:not(:disabled):hover { background: var(--brand-light); }
+    .btn-primary  { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .btn-primary:not(:disabled):hover { background: var(--accent); }
+
+    /* Toggle checkbox */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: .38rem;
+      font-size: .78rem;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .toggle-wrap input[type=checkbox] {
+      width: 1.45rem; height: .82rem;
+      appearance: none;
+      background: #d1d5db;
+      border-radius: 999px;
+      position: relative;
+      cursor: pointer;
+      transition: background .14s;
+      flex-shrink: 0;
+    }
+    .toggle-wrap input[type=checkbox]:checked { background: var(--brand); }
+    .toggle-wrap input[type=checkbox]::after {
+      content: '';
+      position: absolute;
+      top: .07rem; left: .08rem;
+      width: .68rem; height: .68rem;
+      background: #fff;
+      border-radius: 50%;
+      transition: left .14s;
+    }
+    .toggle-wrap input[type=checkbox]:checked::after { left: .69rem; }
+
+    /* ── Table ────────────────────────────────────────────────── */
+    .table-wrap { overflow-y: auto; overflow-x: auto; flex: 1; }
+
+    table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+
+    thead th {
+      background: var(--brand-light);
+      color: var(--brand);
+      font-weight: 700;
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      padding: .5rem .7rem;
+      text-align: center;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    thead th:first-child, thead th:nth-child(2) { text-align: left; }
+
+    thead tr.group-row th {
+      background: var(--brand);
+      color: #fff;
+      font-size: .71rem;
+      padding: .35rem .7rem;
+      letter-spacing: .05em;
+      z-index: 3;
+    }
+    thead tr.group-row { position: sticky; top: 0; }
+    thead tr:nth-child(2) th { top: 1.85rem; /* height of group-row */ }
+
+    tbody tr { transition: background .1s; }
+    tbody tr:nth-child(even) { background: #faf7fd; }
+    tbody tr:hover { background: var(--brand-light); }
+
+    td {
+      padding: .48rem .7rem;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+      vertical-align: middle;
+    }
+    td:first-child { text-align: left; }
+    td:nth-child(2) { text-align: left; }
+
+    .subject-input {
+      border: none; background: transparent;
+      font-size: .84rem; font-weight: 600; color: var(--text);
+      width: 100%; min-width: 7rem;
+      padding: .1rem .22rem; border-radius: 4px;
+    }
+    .subject-input:focus { outline: 2px solid var(--brand-mid); background: var(--brand-light); }
+    .subject-label { font-weight: 600; }
+
+    .credit-input {
+      width: 3rem;
+      border: 1.5px solid var(--border); border-radius: 5px;
+      padding: .2rem .3rem; font-size: .84rem; text-align: center;
+    }
+    .credit-input:focus { outline: 2px solid var(--brand-mid); border-color: transparent; }
+    .credit-badge {
+      display: inline-block;
+      background: var(--brand-light); color: var(--brand);
+      font-weight: 700; font-size: .76rem;
+      padding: .16rem .5rem; border-radius: 999px;
+      min-width: 1.7rem; text-align: center;
+    }
+
+    .grade-select {
+      border: 1.5px solid var(--border); border-radius: 6px;
+      padding: .24rem .4rem; font-size: .81rem; font-weight: 600;
+      background: #fff; color: var(--text); cursor: pointer;
+      min-width: 4.6rem; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .42rem center;
+      padding-right: 1.5rem;
+      transition: border-color .14s, box-shadow .14s;
+    }
+    .grade-select:focus { outline: none; border-color: var(--brand-mid); box-shadow: 0 0 0 3px rgba(108,52,131,.15); }
+    .grade-select.empty { color: var(--muted); border-color: #e5e7eb; }
+
+    .point-cell    { color: var(--brand); font-weight: 700; }
+    .weighted-cell { color: #166534; font-weight: 700; }
+    .dash-cell     { color: #d1d5db; }
+
+    .del-btn {
+      background: none; border: none; cursor: pointer;
+      color: #d1d5db; font-size: .95rem; line-height: 1;
+      padding: .16rem .26rem; border-radius: 4px;
+      transition: color .12s, background .12s;
+    }
+    .del-btn:hover { color: var(--danger); background: #fee2e2; }
+
+    /* Period remove button (in group header) */
+    .period-remove-btn {
+      background: rgba(255,255,255,.16); border: none;
+      color: rgba(255,255,255,.75); border-radius: 3px;
+      font-size: .68rem; cursor: pointer;
+      padding: .08rem .28rem; margin-left: .38rem; line-height: 1;
+      transition: background .14s, color .14s; vertical-align: middle;
+    }
+    .period-remove-btn:hover { background: rgba(255,255,255,.32); color: #fff; }
+
+    /* Totals foot */
+    tfoot td {
+      background: var(--brand-light); font-weight: 700;
+      border-top: 2px solid var(--border); color: var(--brand);
+      font-size: .82rem; padding: .42rem .7rem;
+    }
+
+    /* ── Summary panel ────────────────────────────────────────── */
+    .summary {
+      display: flex;
+      gap: .65rem;
+      padding: .65rem 1.1rem;
+      border-top: 2px solid var(--border);
+      background: #fdf8ff;
+      flex-shrink: 0;
+      overflow-x: auto;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: .55rem .85rem;
+      text-align: center;
+      flex: 1; min-width: 7.5rem;
+    }
+    .stat-card.highlight {
+      background: linear-gradient(135deg, var(--brand) 0%, var(--brand-mid) 100%);
+      border-color: transparent;
+    }
+    .stat-label {
+      font-size: .66rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em;
+      color: var(--muted); margin-bottom: .18rem; white-space: nowrap;
+    }
+    .stat-card.highlight .stat-label { color: rgba(255,255,255,.8); }
+    .stat-value {
+      font-size: 1.35rem; font-weight: 800;
+      color: var(--brand); letter-spacing: -.03em; line-height: 1;
+    }
+    .stat-card.highlight .stat-value { color: #fff; }
+    .stat-sub {
+      font-size: .64rem; color: var(--muted); margin-top: .18rem; white-space: nowrap;
+    }
+    .stat-card.highlight .stat-sub { color: rgba(255,255,255,.72); }
+    .stat-value.incomplete { font-size: .92rem; color: var(--warn); }
+    .stat-card.highlight .stat-value.incomplete { color: #fef3c7; }
+
+    /* ── Actions bar ──────────────────────────────────────────── */
+    .actions {
+      display: flex; gap: .55rem;
+      padding: .55rem 1.1rem;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap; align-items: center;
+      flex-shrink: 0;
+    }
+    .actions-spacer { flex: 1; }
+
+    /* ── Toast ────────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 1.1rem; right: 1.1rem;
+      background: #1a1a2e; color: #fff;
+      padding: .55rem .95rem; border-radius: 7px;
+      font-size: .8rem; font-weight: 600;
+      opacity: 0; transform: translateY(.4rem);
+      transition: opacity .22s, transform .22s;
+      pointer-events: none; z-index: 999;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 680px) {
+      header { padding: .7rem .9rem; }
+      header h1 { font-size: .98rem; }
+      .container { padding: .5rem .65rem; }
+      .toolbar { gap: .4rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <svg width="34" height="34" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect width="40" height="40" rx="10" fill="rgba(255,255,255,0.18)"/>
+    <path d="M20 8L30 13V21C30 26.5 25.5 31.5 20 33C14.5 31.5 10 26.5 10 21V13L20 8Z" fill="rgba(255,255,255,0.9)"/>
+    <text x="20" y="23" text-anchor="middle" font-size="9" font-weight="800" fill="#6c3483" font-family="system-ui">GPA</text>
+  </svg>
+  <div>
+    <h1>Weighted Base 15 GPA Calculator</h1>
+    <p>Weighted GPA · All data stays in your browser</p>
+  </div>
+</header>
+
+<!-- App -->
+<div class="container">
+  <div class="card">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="period-toggle" role="group" aria-label="Period naming">
+        <button id="btn-semester" class="active" onclick="setPeriodType('semester')">Semester</button>
+        <div class="period-toggle-sep"></div>
+        <button id="btn-term" onclick="setPeriodType('term')">Term</button>
+      </div>
+
+      <div class="toolbar-sep"></div>
+
+      <label class="toggle-wrap">
+        <input type="checkbox" id="edit-credits-toggle" onchange="toggleEditCredits()" />
+        Edit credits
+      </label>
+      <label class="toggle-wrap">
+        <input type="checkbox" id="edit-subjects-toggle" onchange="toggleEditSubjects()" />
+        Edit subjects
+      </label>
+
+      <div class="toolbar-sep"></div>
+
+      <button class="btn btn-outline" onclick="addSubject()">＋ Subject</button>
+      <button class="btn btn-outline" id="add-period-btn" onclick="addPeriod()">＋ Period</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table id="gpa-table" aria-label="GPA grade entry table">
+        <thead id="table-head"></thead>
+        <tbody id="subject-rows"></tbody>
+        <tfoot id="totals-foot"></tfoot>
+      </table>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary" id="summary-panel"></div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button class="btn btn-outline" onclick="resetGrades()">↺ Reset grades</button>
+      <button class="btn btn-outline" onclick="loadTemplate()">⟳ Restore defaults</button>
+      <span class="actions-spacer"></span>
+      <button class="btn btn-primary" onclick="saveToStorage()">💾 Save</button>
+      <button class="btn btn-outline" onclick="exportCSV()">⬇ CSV</button>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   CONSTANTS
+═══════════════════════════════════════════════════════════════ */
+const GRADE_SCALE = {
+  'A+': 15, 'A': 14, 'A-': 13,
+  'B+': 12, 'B': 11, 'B-': 10,
+  'C+':  9, 'C':  8, 'C-':  7,
+  'D+':  6, 'D':  5, 'D-':  4,
+  'E+':  3, 'E':  2
+};
+const GRADES = Object.keys(GRADE_SCALE);
+const MAX_PERIODS = 4;
+const STORAGE_KEY = 'somerville_gpa_v2';
+
+const DEFAULT_SUBJECTS = [
+  { id: 's1', name: 'English',     credit: 8 },
+  { id: 's2', name: 'Maths',       credit: 8 },
+  { id: 's3', name: 'Science',     credit: 8 },
+  { id: 's4', name: 'Big History', credit: 8 },
+  { id: 's5', name: 'Japanese',    credit: 7 },
+  { id: 's6', name: 'Tech',        credit: 7 },
+  { id: 's7', name: 'PE',          credit: 5 },
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════════ */
+let state = freshState();
+let editCredits  = false;
+let editSubjects = false;
+let nextId = 100;
+
+function freshState() {
+  return {
+    periodType: 'semester',
+    numPeriods: 2,
+    subjects: DEFAULT_SUBJECTS.map(s => ({ ...s, grades: ['', ''] }))
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════════════ */
+function periodLabel(i) {
+  return (state.periodType === 'semester' ? 'Semester' : 'Term') + ' ' + (i + 1);
+}
+
+function normaliseGrade(raw) {
+  return raw ? raw.trim().toUpperCase() : '';
+}
+
+function esc(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOOLBAR CONTROLS
+═══════════════════════════════════════════════════════════════ */
+function setPeriodType(type) {
+  state.periodType = type;
+  document.getElementById('btn-semester').classList.toggle('active', type === 'semester');
+  document.getElementById('btn-term').classList.toggle('active', type === 'term');
+  render();
+}
+
+function toggleEditCredits()  { editCredits  = document.getElementById('edit-credits-toggle').checked;  render(); }
+function toggleEditSubjects() { editSubjects = document.getElementById('edit-subjects-toggle').checked; render(); }
+
+/* ═══════════════════════════════════════════════════════════════
+   PERIOD MANAGEMENT
+═══════════════════════════════════════════════════════════════ */
+function addPeriod() {
+  if (state.numPeriods >= MAX_PERIODS) return;
+  state.numPeriods++;
+  for (const s of state.subjects) {
+    while (s.grades.length < state.numPeriods) s.grades.push('');
+  }
+  render();
+}
+
+function removePeriod(idx) {
+  if (state.numPeriods <= 1) return;
+  state.numPeriods--;
+  for (const s of state.subjects) {
+    s.grades.splice(idx, 1);
+    while (s.grades.length < state.numPeriods) s.grades.push('');
+  }
+  render();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SUBJECT MANAGEMENT
+═══════════════════════════════════════════════════════════════ */
+function addSubject() {
+  state.subjects.push({
+    id: 'c' + (nextId++),
+    name: 'New Subject',
+    credit: 4,
+    grades: Array(state.numPeriods).fill('')
+  });
+  if (!editSubjects) {
+    editSubjects = true;
+    document.getElementById('edit-subjects-toggle').checked = true;
+  }
+  render();
+  requestAnimationFrame(() => {
+    const inputs = document.querySelectorAll('.subject-input');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  });
+}
+
+function deleteSubject(id) {
+  state.subjects = state.subjects.filter(s => s.id !== id);
+  render();
+}
+
+function setGrade(id, pIdx, value) {
+  const s = state.subjects.find(s => s.id === id);
+  if (s) { s.grades[pIdx] = value; render(); }
+}
+
+function setCredit(id, value) {
+  const s = state.subjects.find(s => s.id === id);
+  if (!s) return;
+  const n = parseInt(value, 10);
+  s.credit = isNaN(n) || n < 1 ? 1 : n;
+  render();
+}
+
+function setSubjectName(id, value) {
+  const s = state.subjects.find(s => s.id === id);
+  if (s) { s.name = value.trim() || 'Subject'; render(); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CALCULATION ENGINE
+═══════════════════════════════════════════════════════════════ */
+function calcRow(subject) {
+  return subject.grades.map(g => {
+    const norm     = normaliseGrade(g);
+    const point    = norm ? (GRADE_SCALE[norm] ?? null) : null;
+    const weighted = point !== null ? subject.credit * point : null;
+    return { norm, point, weighted };
+  });
+}
+
+function calcTotals() {
+  const n    = state.numPeriods;
+  const subs = state.subjects;
+
+  const totalCredits = subs.reduce((a, s) => a + s.credit, 0);
+
+  // Per-period GPA (includes subjects that have a grade for that period)
+  const periodGPAs = Array.from({ length: n }, (_, pi) => {
+    let tw = 0, tc = 0;
+    for (const s of subs) {
+      const r = calcRow(s)[pi];
+      if (r.weighted !== null) { tw += r.weighted; tc += s.credit; }
+    }
+    return tc > 0 ? tw / tc : null;
+  });
+
+  // Period completeness — every subject has a valid grade for that period
+  const periodComplete = Array.from({ length: n }, (_, pi) =>
+    subs.length > 0 && subs.every(s => {
+      const g = normaliseGrade(s.grades[pi] || '');
+      return g && GRADE_SCALE[g] !== undefined;
+    })
+  );
+
+  // Overall GPA — only when ALL periods are complete
+  const allComplete = periodComplete.every(Boolean) && subs.length > 0;
+  const overallGpa  = allComplete
+    ? periodGPAs.reduce((a, g) => a + g, 0) / n
+    : null;
+
+  return { totalCredits, periodGPAs, periodComplete, overallGpa, allComplete };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER
+═══════════════════════════════════════════════════════════════ */
+function render() {
+  const addBtn = document.getElementById('add-period-btn');
+  addBtn.disabled      = state.numPeriods >= MAX_PERIODS;
+
+  renderHead();
+  renderRows();
+  const t = calcTotals();
+  renderTotals(t);
+  renderSummary(t);
+}
+
+function renderHead() {
+  const n         = state.numPeriods;
+  const canRemove = n > 1;
+
+  // Group row
+  let groupCells = `
+    <th rowspan="2" style="text-align:left;min-width:8rem">Subject</th>
+    <th rowspan="2" style="text-align:left">Credit</th>`;
+  for (let i = 0; i < n; i++) {
+    const removeBtn = canRemove
+      ? `<button class="period-remove-btn" onclick="removePeriod(${i})"
+           aria-label="Remove ${esc(periodLabel(i))}" title="Remove ${esc(periodLabel(i))}">✕</button>`
+      : '';
+    groupCells += `<th colspan="3" style="border-left:2px solid rgba(255,255,255,.22)">
+      ${esc(periodLabel(i))}${removeBtn}</th>`;
+  }
+  groupCells += `<th rowspan="2"></th>`;
+
+  // Sub-header row
+  let subCells = '';
+  for (let i = 0; i < n; i++) {
+    subCells += `<th style="border-left:2px solid var(--border)">Grade</th>
+      <th>Point</th><th>Weighted</th>`;
+  }
+
+  document.getElementById('table-head').innerHTML =
+    `<tr class="group-row">${groupCells}</tr><tr>${subCells}</tr>`;
+}
+
+function gradeSelectHTML(subjectId, pIdx, currentGrade) {
+  const g = normaliseGrade(currentGrade);
+  let opts = `<option value="" ${!g ? 'selected' : ''}>— Grade —</option>`;
+  for (const grade of GRADES) {
+    opts += `<option value="${grade}" ${g === grade ? 'selected' : ''}>${grade}</option>`;
+  }
+  return `<select class="grade-select${!g ? ' empty' : ''}"
+    aria-label="${esc(periodLabel(pIdx))} grade for this subject"
+    onchange="setGrade('${subjectId}',${pIdx},this.value)">${opts}</select>`;
+}
+
+function fmtPoint(v)    { return v !== null ? `<span class="point-cell">${v}</span>`    : `<span class="dash-cell">—</span>`; }
+function fmtWeighted(v) { return v !== null ? `<span class="weighted-cell">${v}</span>` : `<span class="dash-cell">—</span>`; }
+
+function renderRows() {
+  const tbody = document.getElementById('subject-rows');
+  if (state.subjects.length === 0) {
+    const cols = 2 + state.numPeriods * 3 + 1;
+    tbody.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;color:var(--muted);padding:1.5rem">
+      No subjects. Click <strong>＋ Subject</strong> to begin.
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = state.subjects.map(s => {
+    const calced = calcRow(s);
+
+    const subjectCell = editSubjects
+      ? `<input class="subject-input" type="text" value="${esc(s.name)}" aria-label="Subject name"
+           onchange="setSubjectName('${s.id}',this.value)" />`
+      : `<span class="subject-label">${esc(s.name)}</span>`;
+
+    const creditCell = editCredits
+      ? `<input class="credit-input" type="number" min="1" max="20" value="${s.credit}"
+           aria-label="Credit for ${esc(s.name)}" onchange="setCredit('${s.id}',this.value)" />`
+      : `<span class="credit-badge">${s.credit}</span>`;
+
+    let periodCells = '';
+    for (let i = 0; i < state.numPeriods; i++) {
+      const r = calced[i] || { point: null, weighted: null };
+      periodCells += `
+        <td style="border-left:2px solid var(--border)">${gradeSelectHTML(s.id, i, s.grades[i] || '')}</td>
+        <td>${fmtPoint(r.point)}</td>
+        <td>${fmtWeighted(r.weighted)}</td>`;
+    }
+
+    return `<tr>
+      <td>${subjectCell}</td>
+      <td>${creditCell}</td>
+      ${periodCells}
+      <td><button class="del-btn" onclick="deleteSubject('${s.id}')"
+        aria-label="Remove ${esc(s.name)}" title="Remove">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTotals(t) {
+  const foot = document.getElementById('totals-foot');
+  if (state.subjects.length === 0) { foot.innerHTML = ''; return; }
+
+  let periodCells = '';
+  for (let i = 0; i < state.numPeriods; i++) {
+    let tw = 0, tc = 0;
+    for (const s of state.subjects) {
+      const r = calcRow(s)[i];
+      if (r.weighted !== null) { tw += r.weighted; tc += s.credit; }
+    }
+    periodCells += `
+      <td style="border-left:2px solid var(--border);font-size:.7rem;color:var(--muted)">cr: ${tc}</td>
+      <td></td>
+      <td><strong>${tw}</strong></td>`;
+  }
+
+  foot.innerHTML = `<tr>
+    <td>Totals</td>
+    <td><span class="credit-badge" style="background:var(--brand);color:#fff">${t.totalCredits}</span></td>
+    ${periodCells}
+    <td></td>
+  </tr>`;
+}
+
+function renderSummary(t) {
+  const panel = document.getElementById('summary-panel');
+
+  const periodCards = t.periodGPAs.map((gpa, i) => {
+    let valHTML, subHTML;
+    if (!state.subjects.length) {
+      valHTML = `<span class="stat-value" style="color:#d1d5db">—</span>`;
+      subHTML = `<div class="stat-sub">No subjects</div>`;
+    } else if (gpa === null) {
+      valHTML = `<span class="stat-value incomplete">—</span>`;
+      subHTML = `<div class="stat-sub">No grades entered</div>`;
+    } else {
+      valHTML = `<span class="stat-value">${gpa.toFixed(2)}</span>`;
+      subHTML = t.periodComplete[i]
+        ? `<div class="stat-sub">All grades entered</div>`
+        : `<div class="stat-sub" style="color:var(--warn)">Partial — some missing</div>`;
+    }
+    return `<div class="stat-card">
+      <div class="stat-label">${esc(periodLabel(i))} GPA</div>
+      ${valHTML}${subHTML}
+    </div>`;
+  }).join('');
+
+  let ovVal, ovSub;
+  if (!state.subjects.length) {
+    ovVal = `<span class="stat-value" style="color:rgba(255,255,255,.4)">—</span>`;
+    ovSub = `<div class="stat-sub">No subjects</div>`;
+  } else if (t.overallGpa === null) {
+    ovVal = `<span class="stat-value incomplete">—</span>`;
+    ovSub = `<div class="stat-sub">Enter all grades to see</div>`;
+  } else {
+    ovVal = `<span class="stat-value">${t.overallGpa.toFixed(2)}</span>`;
+    ovSub = `<div class="stat-sub">All ${state.numPeriods} periods complete</div>`;
+  }
+
+  panel.innerHTML = `${periodCards}
+    <div class="stat-card highlight">
+      <div class="stat-label">Overall GPA</div>
+      ${ovVal}${ovSub}
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESET / RESTORE
+═══════════════════════════════════════════════════════════════ */
+function resetGrades() {
+  for (const s of state.subjects) s.grades = Array(state.numPeriods).fill('');
+  render();
+  showToast('Grades cleared.');
+}
+
+function loadTemplate() {
+  if (!confirm('Restore default subjects? This will clear all current data.')) return;
+  state = freshState();
+  editCredits = editSubjects = false;
+  document.getElementById('edit-credits-toggle').checked  = false;
+  document.getElementById('edit-subjects-toggle').checked = false;
+  document.getElementById('btn-semester').classList.add('active');
+  document.getElementById('btn-term').classList.remove('active');
+  render();
+  showToast('Defaults restored.');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOCAL STORAGE
+═══════════════════════════════════════════════════════════════ */
+function saveToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    showToast('Saved to browser storage.');
+  } catch(e) { showToast('Save failed.'); }
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (saved?.subjects && Array.isArray(saved.subjects) && saved.numPeriods) {
+      state = saved;
+      for (const s of state.subjects) {
+        if (!Array.isArray(s.grades)) s.grades = Array(state.numPeriods).fill('');
+        while (s.grades.length < state.numPeriods) s.grades.push('');
+        s.grades = s.grades.slice(0, state.numPeriods);
+      }
+    }
+  } catch(e) { /* ignore corrupt data */ }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CSV EXPORT
+═══════════════════════════════════════════════════════════════ */
+function exportCSV() {
+  const n = state.numPeriods;
+  const t = calcTotals();
+  const hdrs = ['Subject', 'Credit'];
+  for (let i = 0; i < n; i++) {
+    const lbl = periodLabel(i);
+    hdrs.push(`${lbl} Grade`, `${lbl} Point`, `${lbl} Weighted`);
+  }
+  const rows = [hdrs];
+  for (const s of state.subjects) {
+    const c = calcRow(s);
+    const row = [s.name, s.credit];
+    for (let i = 0; i < n; i++) {
+      const r = c[i] || {};
+      row.push(s.grades[i] || '', r.point ?? '', r.weighted ?? '');
+    }
+    rows.push(row);
+  }
+  rows.push([], ['Total Credits', t.totalCredits]);
+  for (let i = 0; i < n; i++) {
+    rows.push([`${periodLabel(i)} GPA`, t.periodGPAs[i] != null ? t.periodGPAs[i].toFixed(2) : 'Incomplete']);
+  }
+  rows.push(['Overall GPA', t.overallGpa != null ? t.overallGpa.toFixed(2) : 'Incomplete']);
+
+  const csv  = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const url  = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  const a    = Object.assign(document.createElement('a'), {
+    href: url, download: `gpa_${new Date().toISOString().slice(0,10)}.csv`
+  });
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV exported.');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════════════ */
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════════════ */
+loadFromStorage();
+document.getElementById('btn-semester').classList.toggle('active', state.periodType === 'semester');
+document.getElementById('btn-term').classList.toggle('active',     state.periodType === 'term');
+render();
+</script>
+</body>
+</html>
